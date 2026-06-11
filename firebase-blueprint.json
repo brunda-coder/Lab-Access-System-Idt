@@ -1,0 +1,108 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "Registered system user profile with RBAC settings",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "The email address linked to Firebase Auth profile"
+        },
+        "full_name": {
+          "type": "string",
+          "description": "Full display name of the user"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["STUDENT", "EVALUATOR", "ADMIN"],
+          "description": "User access level"
+        },
+        "reg_num": {
+          "type": "string",
+          "description": "University registration number. Mandatory for STUDENTS"
+        }
+      },
+      "required": ["email", "full_name", "role"]
+    },
+    "lab_session": {
+      "title": "LabSession",
+      "description": "Lab session that students can request evaluation for",
+      "type": "object",
+      "properties": {
+        "course_code": {
+          "type": "string",
+          "description": "The specific course identifier"
+        },
+        "is_active": {
+          "type": "boolean",
+          "description": "Current active access state of the lab session"
+        },
+        "current_dynamic_token": {
+          "type": "string",
+          "description": "A dynamic 60-second rotating access security token"
+        }
+      },
+      "required": ["course_code", "is_active", "current_dynamic_token"]
+    },
+    "evaluation": {
+      "title": "Evaluation",
+      "description": "Evaluation submission for labs",
+      "type": "object",
+      "properties": {
+        "student_uid": {
+          "type": "string",
+          "description": "Authentication uid of the undergraduate student"
+        },
+        "lab_session_id": {
+          "type": "string",
+          "description": "Target ID of the active lab session"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["PENDING", "COMPLETED"],
+          "description": "Current status of the grading flow"
+        },
+        "marks": {
+          "type": "number",
+          "description": "Numerical marks assigned by the evaluator"
+        },
+        "feedback": {
+          "type": "string",
+          "description": "Subjective review feedback from the evaluator"
+        },
+        "studentWork": {
+          "type": "string",
+          "description": "The student's submitted code or work"
+        },
+        "studentDoubts": {
+          "type": "string",
+          "description": "Any questions or doubts from the student"
+        },
+        "evaluatorFeedback": {
+          "type": "string",
+          "description": "Direct feedback from the evaluator to answer doubts"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Server-side written creation Timestamp"
+        }
+      },
+      "required": ["student_uid", "lab_session_id", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "Strict collection holding detailed user profile attributes mapped by UID"
+    },
+    "/lab_sessions/{sessionId}": {
+      "schema": "lab_session",
+      "description": "Available session entities storing Active state and verification tokens"
+    },
+    "/evaluations/{evaluationId}": {
+      "schema": "evaluation",
+      "description": "Real-time records containing check-ins, status states, and grades"
+    }
+  }
+}

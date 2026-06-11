@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Catch-all Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Reusable, Secured Global Variables & RBAC Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function getUserRole() {
+      return isSignedIn() ? getUserData().role : null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && getUserRole() == 'ADMIN';
+    }
+    
+    function isEvaluator() {
+      return isSignedIn() && (getUserRole() == 'EVALUATOR' || getUserRole() == 'ADMIN');
+    }
+    
+    function isStudent() {
+      return isSignedIn() && getUserRole() == 'STUDENT';
+    }
+
+    // --- COLLECTION: users ---
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      // Allow users to self-create their profiles during initial registration or Admin to provision them
+      allow create: if isSignedIn() && (
+        userId == request.auth.uid &&
+        request.resource.data.role in ['STUDENT', 'EVALUATOR', 'ADMIN'] &&
+        request.resource.data.email == request.auth.token.email &&
+        request.resource.data.full_name is string &&
+        request.resource.data.full_name.size() > 0 &&
+        request.resource.data.full_name.size() <= 200
+      ) || isAdmin();
+      
+      // Prevent role self-escalation or modifications except by Admin
+      allow update: if isSignedIn() && (
+        (userId == request.auth.uid && request.resource.data.role == resource.data.role) ||
+        isAdmin()
+      );
+      
+      allow delete: if isAdmin();
+    }
+    
+    // --- COLLECTION: lab_sessions ---
+    match /lab_sessions/{sessionId} {
+      // Anyone authenticated can read active sessions to cross-check tokens
+      allow read: if isSignedIn();
+      allow create: if isAdmin() || isEvaluator();
+      allow update: if isAdmin() || isEvaluator();
+      allow delete: if isAdmin();
+    }
+    
+    // --- COLLECTION: evaluations ---
+    match /evaluations/{evaluationId} {
+      // Secure List / Get Query Enforcer
+      allow read: if isSignedIn() && (
+        isEvaluator() || 
+        isAdmin() || 
+        resource.data.student_uid == request.auth.uid
+      );
+      
+      // Students can ONLY create PENDING evaluation requests where they are the students
+      allow create: if isSignedIn() && (
+        isAdmin() || (
+          isStudent() && 
+          request.resource.data.student_uid == request.auth.uid &&
+          request.resource.data.status == 'PENDING' &&
+          request.resource.data.marks == null &&
+          request.resource.data.feedback == null &&
+          request.resource.data.evaluatorFeedback == null
+        )
+      );
+      
+      // Evaluators and Admins are the EXCLUSIVE entities that can grade and update requests
+      allow update: if isSignedIn() && (
+        isAdmin() || (
+          isEvaluator() && 
+          request.resource.data.student_uid == resource.data.student_uid &&
+          request.resource.data.lab_session_id == resource.data.lab_session_id &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'marks', 'feedback', 'evaluatorFeedback'])
+        )
+      );
+      
+      allow delete: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Lab Access and Digital Evaluation",
+  "description": "A production-grade, real-time lab access control and digital course evaluation system using Firebase Authentication and Firestore.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
