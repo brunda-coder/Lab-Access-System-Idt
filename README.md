@@ -379,4 +379,4 @@ A: Admin or evaluator deactivated it. Ask them to reactivate using the session c
 
 Academic Use Only - Proprietary
 
-Created for educational institutions requiring professional laboratory management systems.
+For Interdisciplinary Innovative design thinking project, Contectless Lab Access team, JNNCE Shimoga
